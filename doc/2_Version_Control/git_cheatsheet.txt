@@ -1,9 +1,60 @@
 
-    git commit
-    git branch
-    git checkout
-    git pull
-    git push
-    git merge
-    git rebase
-    git fetch
+    git commit (LOCAL):
+> takes staged files and saves a commit in the local repo
+> -m "Message"
+> --amend ; Update prev commit content, don't use after pushing
+> --amend --no-edit ; amend w/o changing prev. message      
+
+
+    git branch:
+> list, create, rename, or delete branch pointers, which isolate work
+> -a ; include remotes
+> <name> ; create 
+> -d old-branch ; delete old branch
+> -D old-branch ; force delete
+> -m <new-name> ; rename
+
+
+    git checkout:
+> switch branches or restore files
+> -b <name> ; create and switch to new branch
+> -- <filepath/...> ; restore file from HEAD
+> <commit> -- path ; restore from past commit
+
+
+    git pull:
+> git fetch and update branch (merge)
+> --rebase 
+
+    git push:
+> send local commits to remote
+> origin main ; push to main branch
+> -u original <new> ; push and set upstream
+> --force-with-lease ; force push safely
+
+    git merge:
+> combines other branch w/ current branch
+> <branch-name> ; merge into main 
+
+    git rebase:
+> update to main w/o merge commit
+
+    git fetch:
+> updates from remote w/o changing working files
+> --all ; all remotes
+> --prune ; remove deleted remotes
+
+   git add:
+> move from wd to stage
+
+   git status:
+> shows changed and staged
+
+   git log:
+> --oneline ; short ver
+> --graph --oneline --decorate --all ; visual tree
+> -p ; code diffs for each commit
+> <filename.txt> ; history of one file
+
+  git push -u origin main:
+> -u for first time  
