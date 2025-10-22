@@ -1,6 +1,8 @@
 /*
  * main.c
  */
+
+ //ASK ABOUT HOW TO DEAL WITH ARRAY LIMITATIONS!!!!
 #include <zephyr/kernel.h>
 #include <zephyr/device.h>
 #include <zephyr/drivers/gpio.h>
