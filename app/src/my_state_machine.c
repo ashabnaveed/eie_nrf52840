@@ -6,9 +6,9 @@
  #include "LED.h"
  #include "my_state_machine.h"
 
- static void led_on_state_entry(void *o);
+ static void led_on_state_exit(void *o);
  static enum smf_state_result led_on_state_run(void *o);
- static void led_off_state_entry(void *o);
+ static void led_off_state_exit(void *o);
  static enum smf_state_result led_off_state_run(void *o);
 
  enum led_state_machine_states{
@@ -24,8 +24,8 @@
  static led_state_object_t led_state_object;
  
  static const struct smf_state led_states[] = {
-    [LED_ON_STATE] = SMF_CREATE_STATE(led_on_state_entry, led_on_state_run, NULL, NULL, NULL),
-    [LED_OFF_STATE] = SMF_CREATE_STATE(led_off_state_entry, led_off_state_run, NULL, NULL, NULL)
+    [LED_ON_STATE] = SMF_CREATE_STATE(NULL, led_on_state_run, led_on_state_exit, NULL, NULL),
+    [LED_OFF_STATE] = SMF_CREATE_STATE(NULL, led_off_state_run, led_off_state_exit, NULL, NULL)
  };
 
  void state_machine_init() {
@@ -59,10 +59,10 @@
     return SMF_EVENT_HANDLED;
  }
 
- static void led_on_state_entry(void *o) {
-    LED_set(LED0, LED_ON);
+ static void led_on_state_exit(void *o) {
+    LED_set(LED0, LED_OFF);
  }
 
- static void led_off_state_entry(void *o) {
-    LED_set(LED0, LED_OFF);
+ static void led_off_state_exit(void *o) {
+    LED_set(LED0, LED_ON);
  }
