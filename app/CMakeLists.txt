@@ -14,9 +14,6 @@ zephyr_include_directories(src)
 target_sources(app PRIVATE src/main.c)
 target_sources(app PRIVATE src/my_state_machine.c)
 
-target_sources(app PRIVATE ../drivers/LED/led.c)
-target_sources(app PRIVATE ../drivers/BTN/btn.c)
-
 target_include_directories(app PRIVATE
     ${CMAKE_CURRENT_SOURCE_DIR}/../drivers
 )
