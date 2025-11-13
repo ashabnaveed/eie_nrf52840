@@ -16,6 +16,7 @@ In a state machine we define the system states and how the system transitions be
 
 We often use State transition diagrams to show the states and the transitions between them.
 For example the diagram below shows an example state machine for a traffic light with the criteria for each transition next to the transition arrow.
+
 image::traffic_light_sm.png[]
 
 === C Language Features
@@ -140,7 +141,7 @@ To start with we are going to create a simple state machine that blinks an LED.
 . The first step in creating a state machine is to define all the states and draw out the state diagram.
 The state diagram is drawn below
 +
-image::led_sm.puml[]
+image::led_sm.png[]
 This is a rather simple state machine with only 2 states, however as you start to work with more complicated machines this process becomes invaluable.
 . Next we need to enable the state machine framework in kconfig. Similarly to when we enabled the GPIO in lesson 3 we need to enable the state machine framework by adding the `CONFIG_SMF` to the `prj.conf` file in `app`. The `prj.conf` should look like the below afterwards.
 +
