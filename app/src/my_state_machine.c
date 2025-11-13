@@ -159,7 +159,7 @@
   if (edge == 2) smf_set_state(SMF_CTX(&state_object), &state_machine_states[S2]);
 
   if (edge == -1){
-    if (state_object.count > 2000){
+    if (state_object.count > 500){
       LED_toggle(LED0);
       state_object.count = 0;
     } else {
@@ -206,7 +206,7 @@
   if (edge == 4) smf_set_state(SMF_CTX(&state_object), &state_machine_states[S0]);
 
   if (edge == -1){
-    if (state_object.count > 8000) {
+    if (state_object.count > 33) {
       LED_toggle(LED0);
       LED_toggle(LED1);
       LED_toggle(LED2);
