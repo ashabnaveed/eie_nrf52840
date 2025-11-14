@@ -300,8 +300,10 @@
   int edge = button_press_edge();
 
   if (edge != 0){
-    state_object.resume = 1; //used to ensure entry does not reset current ASCII code
+    state_object.pwm = 0;
+    state_object.resume = 1; //used to ensure entry does not reset current ASCII code MIGHT REMOVE SINCE PRESSING BTN 0 & 1 will register as clicks...
     smf_set_state(SMF_CTX(&state_object), &state_machine_states[state_object.last_state]);
+    return SMF_EVENT_HANDLED;
   }
 
   static int pwm_direction = 1; //needs to persist between calls otherwise gets stuck at pwm 100
