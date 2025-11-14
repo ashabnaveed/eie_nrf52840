@@ -78,9 +78,10 @@
  //Needed to monitor current state
  typedef struct {
    struct smf_ctx ctx;
-   uint16_t count;
+   uint16_t resume;
    uint16_t input_count;
    uint16_t last_state;
+   uint16_t pwm;
  } state_object_t;
 
  static state_object_t state_object; //creating state_object to monitor and change states
@@ -114,8 +115,8 @@
  -------------------------------------------------------------------------------------------------------------- */
  static void entrya_entry(void * o){
   state_object.last_state = ENTRYA;
-  state_object.input_count = 0;
-  state_object.count = 0;
+  if (!state_object.resume) state_object.input_count = 0;
+  state_object.resume = 0;
   LED_set(LED0, LED_OFF);
   LED_set(LED1, LED_OFF);
   LED_set(LED2, LED_OFF);
@@ -125,7 +126,7 @@
 
  static void entryb_entry(void * o){
   state_object.last_state = ENTRYB;
-  state_object.count = 0;
+  state_object.resume = 0;
   LED_set(LED0, LED_OFF);
   LED_set(LED1, LED_OFF);
   LED_set(LED2, LED_OFF);
@@ -136,7 +137,7 @@
  static void end_entry(void * o){
   state_object.last_state = END;
   state_object.input_count = 0;
-  state_object.count = 0;
+  state_object.resume = 0;
   LED_set(LED0, LED_OFF);
   LED_set(LED1, LED_OFF);
   LED_set(LED2, LED_OFF);
@@ -145,7 +146,7 @@
  }
 
  static void standby_entry(void * o){
-  state_object.count = 0;
+  state_object.pwm = 0;
   LED_set(LED0, LED_ON);
   LED_set(LED1, LED_ON);
   LED_set(LED2, LED_ON);
@@ -280,6 +281,11 @@
 
     if (edge & (1 << 3)){
       for (int i = 0; i < ASCIILEN; i++){
+        if (user_input[i] == -1){
+          printk("Error when entering ASCII code, resetting. Please re-enter the code correctly (8 bits & 8 bits)\n");
+          smf_set_state(SMF_CTX(&state_object), &state_machine_states[ENTRYA]);
+          return SMF_EVENT_HANDLED;
+        }
         printk("%d", user_input[i]);
       }
     }
@@ -291,16 +297,32 @@
 
  static enum smf_state_result standby_run(void *o){
 
-  LED_blink(LED0, 32);
-  LED_blink(LED1, 32);
-  LED_blink(LED2, 32);
-  LED_blink(LED3, 32);
-
   int edge = button_press_edge();
 
   if (edge != 0){
+    state_object.resume = 1; //used to ensure entry does not reset current ASCII code
     smf_set_state(SMF_CTX(&state_object), &state_machine_states[state_object.last_state]);
   }
+
+  static int pwm_direction = 1; //needs to persist between calls otherwise gets stuck at pwm 100
+
+  state_object.pwm += pwm_direction * 5;
+
+  if (state_object.pwm >= 100) {
+      state_object.pwm = 100;
+      pwm_direction = -1;
+  } 
+  else if (state_object.pwm <= 0) {
+      state_object.pwm = 0;
+      pwm_direction = 1;
+  }
+
+  LED_pwm(LED0, state_object.pwm);
+  LED_pwm(LED1, state_object.pwm);
+  LED_pwm(LED2, state_object.pwm);
+  LED_pwm(LED3, state_object.pwm);
+
+  k_msleep(sleep_time * 10);
 
   return SMF_EVENT_HANDLED;
  }
