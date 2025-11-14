@@ -284,8 +284,19 @@
           smf_set_state(SMF_CTX(&state_object), &state_machine_states[ENTRYA]);
           return SMF_EVENT_HANDLED;
         }
-        printk("%d", user_input[i]);
       }
+
+      uint16_t first = 0;
+      uint16_t second = 0;
+
+      for (int i = 0; i < 8; i++){
+        first = (first << 1) | (user_input[i] & 1);
+      }
+
+      for (int i = 8; i < 16; i++){
+        second = (second << 1) | (user_input[i] & 1);
+      }
+      printk("Characters %c, %c ", first, second);
     }
   }
   
