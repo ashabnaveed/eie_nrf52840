@@ -8,15 +8,19 @@
  #include "BTN.h"
 
  #define ASCIILEN 16
+ #define BTN01_MASK ((1 << 0) | (1 << 1)) /* for convenience */
 
   /* --------------------------------------------------------------------------------------------------------------
   Global Static Password Manager (Using Malloc for a variable array length as well)
  -------------------------------------------------------------------------------------------------------------- */
 
- static int user_input[ASCIILEN];
+ static int half_len = ASCIILEN / 2;
 
- void clear_input(){
-  for (int i = 0; i < ASCIILEN; i++){
+ static int user_input[ASCIILEN];
+ static int64_t standby_hold_start = -1;
+
+ void clear_input(int start){
+  for (int i = start; i < half_len + start; i++){
     user_input[i] = -1;
   }
  }
@@ -26,25 +30,23 @@
  -------------------------------------------------------------------------------------------------------------- */
 
  int button_press(){
-  if (BTN_is_pressed(BTN0)) return 1;
-  if (BTN_is_pressed(BTN1)) return 2;
-  if (BTN_is_pressed(BTN2)) return 3;
-  if (BTN_is_pressed(BTN3)) return 4;
-  return -1;
+  uint16_t mask = 0;
+
+  if (BTN_is_pressed(BTN0)) mask |= (1 << 0);
+  if (BTN_is_pressed(BTN1)) mask |= (1 << 1);
+  if (BTN_is_pressed(BTN2)) mask |= (1 << 2);
+  if (BTN_is_pressed(BTN3)) mask |= (1 << 3);
+
+  return mask;
  }
 
- static int last_button = -1;
+ static int last_button = 0;
 
  static int button_press_edge(){
   int current = button_press();
-  int edge = -1;
-
-  if (current != -1 && last_button == -1){
-    edge = current;
-  }
-
+  int edge = current & ~last_button;
   last_button = current;
-  return edge; //1-4 on new press, -1 on no press
+  return edge; 
  }
 
  /* --------------------------------------------------------------------------------------------------------------
@@ -79,6 +81,7 @@
    uint16_t btn_press;
    uint16_t count;
    uint16_t input_count;
+   uint16_t last_state;
  } state_object_t;
 
  static state_object_t state_object; //creating state_object to monitor and change states
@@ -99,6 +102,7 @@
    Initialize and Run
  -------------------------------------------------------------------------------------------------------------- */
  void state_machine_init(){
+   state_object.last_state = ENTRYA;
    smf_set_initial(SMF_CTX(&state_object), &state_machine_states[ENTRYA]);
  }
 
@@ -110,16 +114,37 @@
    Entry States
  -------------------------------------------------------------------------------------------------------------- */
  static void entrya_entry(void * o){
-
+  state_object.last_state = ENTRYA;
+  state_object.input_count = 0;
+  LED_set(LED0, LED_OFF);
+  LED_set(LED1, LED_OFF);
+  LED_set(LED2, LED_OFF);
+  LED_set(LED3, LED_ON);
  }
+
  static void entryb_entry(void * o){
-
+  state_object.last_state = ENTRYB;
+  LED_set(LED0, LED_OFF);
+  LED_set(LED1, LED_OFF);
+  LED_set(LED2, LED_OFF);
+  LED_set(LED3, LED_ON);
  }
+
  static void end_entry(void * o){
-
+  state_object.last_state = END;
+  state_object.input_count = 0;
+  LED_set(LED0, LED_OFF);
+  LED_set(LED1, LED_OFF);
+  LED_set(LED2, LED_OFF);
+  LED_set(LED3, LED_ON);
  }
- static void standby_entry(void * o){
 
+ static void standby_entry(void * o){
+  state_object.input_count = 0;
+  LED_set(LED0, LED_ON);
+  LED_set(LED1, LED_ON);
+  LED_set(LED2, LED_ON);
+  LED_set(LED3, LED_ON);
  }
 
  /* --------------------------------------------------------------------------------------------------------------
@@ -127,21 +152,150 @@
  -------------------------------------------------------------------------------------------------------------- */
 
  static enum smf_state_result entrya_run(void *o){
+  int press = button_press();
+  int64_t current_time = k_uptime_get();
+  
+  LED_blink(LED3, 1);
+  LED_set(LED0, LED_OFF);
+  LED_set(LED1, LED_OFF);
+
+  if ((press & BTN01_MASK) == BTN01_MASK){
+    if (standby_hold_start < 0){
+      standby_hold_start = current_time; //set current time to find diff
+    } else if ((current_time - standby_hold_start >= 3000)){
+      standby_hold_start = -1;
+      smf_set_state(SMF_CTX(&state_object), &state_machine_states[STANDBY]);
+    } 
+  } else {
+    standby_hold_start = -1;
+  }
+
+  int edge = button_press_edge();
+  if (edge != 0){
+
+    if ((edge & (1 << 0)) && (state_object.input_count < half_len)){
+      LED_set(LED0, LED_ON);
+      user_input[state_object.input_count++] = 0;
+    }
+
+    if ((edge & (1 << 1)) && (state_object.input_count < half_len)){
+      LED_set(LED1, LED_ON);
+      user_input[state_object.input_count++] = 1;
+    }
+
+    if (edge & (1 << 2)){
+      clear_input(0);
+      state_object.input_count = 0;
+    }
+
+    if (edge & (1 << 3)){
+      smf_set_state(SMF_CTX(&state_object), &state_machine_states[ENTRYB]);
+    }
+
+  }
+
 
   return SMF_EVENT_HANDLED;
  }
 
  static enum smf_state_result entryb_run(void *o){
+  int press = button_press();
+  int64_t current_time = k_uptime_get();
+  
+  LED_blink(LED3, 4);
+  LED_set(LED0, LED_OFF);
+  LED_set(LED1, LED_OFF);
+
+  if ((press & BTN01_MASK) == BTN01_MASK){
+    if (standby_hold_start < 0){
+      standby_hold_start = current_time; //set current time to find diff
+    } else if ((current_time - standby_hold_start >= 3000)){
+      standby_hold_start = -1;
+      smf_set_state(SMF_CTX(&state_object), &state_machine_states[STANDBY]);
+    } 
+  } else {
+    standby_hold_start = -1;
+  }
+
+
+  int edge = button_press_edge();
+  if (edge != 0){
+
+    if ((edge & (1 << 0)) && (state_object.input_count < ASCIILEN)){
+      LED_set(LED0, LED_ON);
+      user_input[state_object.input_count++] = 0;
+    }
+
+    if ((edge & (1 << 1)) && (state_object.input_count < ASCIILEN)){
+      LED_set(LED1, LED_ON);
+      user_input[state_object.input_count++] = 1;
+    }
+
+    if (edge & (1 << 2)){
+      clear_input(8);
+      state_object.input_count = 8;
+    }
+
+    if (edge & (1 << 3)){
+      smf_set_state(SMF_CTX(&state_object), &state_machine_states[END]);
+    }
+
+  }
+
 
   return SMF_EVENT_HANDLED;
  }
 
  static enum smf_state_result end_run(void *o){
+  int press = button_press();
+  int64_t current_time = k_uptime_get();
+  
+  LED_blink(LED3, 16);
+
+  if ((press & BTN01_MASK) == BTN01_MASK){
+    if (standby_hold_start < 0){
+      standby_hold_start = current_time; //set current time to find diff
+    } else if ((current_time - standby_hold_start >= 3000)){
+      standby_hold_start = -1;
+      smf_set_state(SMF_CTX(&state_object), &state_machine_states[STANDBY]);
+    } 
+  } else {
+    standby_hold_start = -1;
+  }
+
+
+  int edge = button_press_edge();
+  
+  if (edge != 0){
+    if (edge & (1 << 2)){
+      clear_input(0);
+      clear_input(8);
+      smf_set_state(SMF_CTX(&state_object), &state_machine_states[ENTRYA]);
+    }
+
+    if (edge & (1 << 3)){
+      for (int i = 0; i < ASCIILEN; i++){
+        printk("%d", user_input[i]);
+      }
+    }
+  }
+  
 
   return SMF_EVENT_HANDLED;
  }
 
  static enum smf_state_result standby_run(void *o){
+
+  LED_blink(LED0, 32);
+  LED_blink(LED1, 32);
+  LED_blink(LED2, 32);
+  LED_blink(LED3, 32);
+
+  int edge = button_press_edge();
+
+  if (edge != 0){
+    smf_set_state(SMF_CTX(&state_object), &state_machine_states[state_object.last_state]);
+  }
 
   return SMF_EVENT_HANDLED;
  }
