@@ -9,13 +9,13 @@
 
  #define ASCIILEN 16
  #define BTN01_MASK ((1 << 0) | (1 << 1)) /* for convenience */
+ #define sleep_time 5
 
   /* --------------------------------------------------------------------------------------------------------------
   Global Static Password Manager (Using Malloc for a variable array length as well)
  -------------------------------------------------------------------------------------------------------------- */
 
  static int half_len = ASCIILEN / 2;
-
  static int user_input[ASCIILEN];
  static int64_t standby_hold_start = -1;
 
@@ -78,7 +78,6 @@
  //Needed to monitor current state
  typedef struct {
    struct smf_ctx ctx;
-   uint16_t btn_press;
    uint16_t count;
    uint16_t input_count;
    uint16_t last_state;
@@ -116,31 +115,37 @@
  static void entrya_entry(void * o){
   state_object.last_state = ENTRYA;
   state_object.input_count = 0;
+  state_object.count = 0;
   LED_set(LED0, LED_OFF);
   LED_set(LED1, LED_OFF);
   LED_set(LED2, LED_OFF);
   LED_set(LED3, LED_ON);
+  LED_blink(LED3, 1);
  }
 
  static void entryb_entry(void * o){
   state_object.last_state = ENTRYB;
+  state_object.count = 0;
   LED_set(LED0, LED_OFF);
   LED_set(LED1, LED_OFF);
   LED_set(LED2, LED_OFF);
   LED_set(LED3, LED_ON);
+  LED_blink(LED3, 4);
  }
 
  static void end_entry(void * o){
   state_object.last_state = END;
   state_object.input_count = 0;
+  state_object.count = 0;
   LED_set(LED0, LED_OFF);
   LED_set(LED1, LED_OFF);
   LED_set(LED2, LED_OFF);
   LED_set(LED3, LED_ON);
+  LED_blink(LED3, 16);
  }
 
  static void standby_entry(void * o){
-  state_object.input_count = 0;
+  state_object.count = 0;
   LED_set(LED0, LED_ON);
   LED_set(LED1, LED_ON);
   LED_set(LED2, LED_ON);
@@ -155,7 +160,6 @@
   int press = button_press();
   int64_t current_time = k_uptime_get();
   
-  LED_blink(LED3, 1);
   LED_set(LED0, LED_OFF);
   LED_set(LED1, LED_OFF);
 
@@ -175,11 +179,13 @@
 
     if ((edge & (1 << 0)) && (state_object.input_count < half_len)){
       LED_set(LED0, LED_ON);
+      k_msleep(sleep_time); //added for visibility
       user_input[state_object.input_count++] = 0;
     }
 
     if ((edge & (1 << 1)) && (state_object.input_count < half_len)){
       LED_set(LED1, LED_ON);
+      k_msleep(sleep_time); //added for visibility
       user_input[state_object.input_count++] = 1;
     }
 
@@ -202,7 +208,6 @@
   int press = button_press();
   int64_t current_time = k_uptime_get();
   
-  LED_blink(LED3, 4);
   LED_set(LED0, LED_OFF);
   LED_set(LED1, LED_OFF);
 
@@ -223,11 +228,13 @@
 
     if ((edge & (1 << 0)) && (state_object.input_count < ASCIILEN)){
       LED_set(LED0, LED_ON);
+      k_msleep(sleep_time); //added for visibility
       user_input[state_object.input_count++] = 0;
     }
 
     if ((edge & (1 << 1)) && (state_object.input_count < ASCIILEN)){
       LED_set(LED1, LED_ON);
+      k_msleep(sleep_time); //added for visibility
       user_input[state_object.input_count++] = 1;
     }
 
@@ -249,8 +256,6 @@
  static enum smf_state_result end_run(void *o){
   int press = button_press();
   int64_t current_time = k_uptime_get();
-  
-  LED_blink(LED3, 16);
 
   if ((press & BTN01_MASK) == BTN01_MASK){
     if (standby_hold_start < 0){
