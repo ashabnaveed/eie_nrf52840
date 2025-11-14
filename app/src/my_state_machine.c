@@ -78,7 +78,6 @@
  //Needed to monitor current state
  typedef struct {
    struct smf_ctx ctx;
-   uint16_t resume;
    uint16_t input_count;
    uint16_t last_state;
    uint16_t pwm;
@@ -115,8 +114,8 @@
  -------------------------------------------------------------------------------------------------------------- */
  static void entrya_entry(void * o){
   state_object.last_state = ENTRYA;
-  if (!state_object.resume) state_object.input_count = 0;
-  state_object.resume = 0;
+  state_object.input_count = 0;
+  clear_input(0);
   LED_set(LED0, LED_OFF);
   LED_set(LED1, LED_OFF);
   LED_set(LED2, LED_OFF);
@@ -126,7 +125,7 @@
 
  static void entryb_entry(void * o){
   state_object.last_state = ENTRYB;
-  state_object.resume = 0;
+  clear_input(8);
   LED_set(LED0, LED_OFF);
   LED_set(LED1, LED_OFF);
   LED_set(LED2, LED_OFF);
@@ -137,7 +136,6 @@
  static void end_entry(void * o){
   state_object.last_state = END;
   state_object.input_count = 0;
-  state_object.resume = 0;
   LED_set(LED0, LED_OFF);
   LED_set(LED1, LED_OFF);
   LED_set(LED2, LED_OFF);
@@ -301,7 +299,6 @@
 
   if (edge != 0){
     state_object.pwm = 0;
-    state_object.resume = 1; //used to ensure entry does not reset current ASCII code MIGHT REMOVE SINCE PRESSING BTN 0 & 1 will register as clicks...
     smf_set_state(SMF_CTX(&state_object), &state_machine_states[state_object.last_state]);
     return SMF_EVENT_HANDLED;
   }
