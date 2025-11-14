@@ -7,23 +7,16 @@
  #include "my_state_machine.h"
  #include "BTN.h"
 
- #define PASSLEN 10
+ #define ASCIILEN 16
 
   /* --------------------------------------------------------------------------------------------------------------
   Global Static Password Manager (Using Malloc for a variable array length as well)
  -------------------------------------------------------------------------------------------------------------- */
 
- static int password[PASSLEN];
- static int user_input[PASSLEN];
-
- void initialize_password(){
-  for (int i = 0; i < PASSLEN; i++){
-    password[i] = -1;
-  }
- }
+ static int user_input[ASCIILEN];
 
  void clear_input(){
-  for (int i = 0; i < PASSLEN; i++){
+  for (int i = 0; i < ASCIILEN; i++){
     user_input[i] = -1;
   }
  }
@@ -59,25 +52,25 @@
  -------------------------------------------------------------------------------------------------------------- */
 
  //Using Entry States for LED Control
- static void lock_entry(void * o);
- static void input_entry(void * o);
- static void waiting_entry(void * o);
- static void boot_entry(void * o);
+ static void entrya_entry(void * o);
+ static void entryb_entry(void * o);
+ static void end_entry(void * o);
+ static void standby_entry(void * o);
 
  // Using Run States to wait for state shifting
- static enum smf_state_result lock_run(void *o);
- static enum smf_state_result input_run(void *o);
- static enum smf_state_result waiting_run(void *o);
- static enum smf_state_result boot_run(void *o);
+ static enum smf_state_result entrya_run(void *o);
+ static enum smf_state_result entryb_run(void *o);
+ static enum smf_state_result end_run(void *o);
+ static enum smf_state_result standby_run(void *o);
 
  /* --------------------------------------------------------------------------------------------------------------
    Names of States
  -------------------------------------------------------------------------------------------------------------- */
  enum {
-  LOCKED,  
-  WAITING,
-  INPUT,
-  BOOT   
+  ENTRYA,  
+  ENTRYB,
+  END,
+  STANDBY   
 }; 
 
  //Needed to monitor current state
@@ -86,37 +79,27 @@
    uint16_t btn_press;
    uint16_t count;
    uint16_t input_count;
-   uint16_t user_input_count;
  } state_object_t;
 
  static state_object_t state_object; //creating state_object to monitor and change states
 
- int compare_passwords(){
-  if (state_object.user_input_count != state_object.input_count) return -1;
-
-  for (int i = 0; i < state_object.input_count; i++){
-    if (user_input[i] != password[i]) return -1;
-  }
-
-  return 1;
- }
 
  /* --------------------------------------------------------------------------------------------------------------
    Define State Table
  -------------------------------------------------------------------------------------------------------------- */
 
  const struct smf_state state_machine_states[] = {
-   [LOCKED] = SMF_CREATE_STATE(lock_entry, lock_run, NULL, NULL, NULL),
-   [WAITING] = SMF_CREATE_STATE(waiting_entry, waiting_run, NULL, NULL, NULL),
-   [INPUT] = SMF_CREATE_STATE(input_entry, input_run, NULL, NULL, NULL),
-   [BOOT] = SMF_CREATE_STATE(boot_entry, boot_run, NULL, NULL, NULL)
+   [ENTRYA] = SMF_CREATE_STATE(entrya_entry, entrya_run, NULL, NULL, NULL),
+   [ENTRYB] = SMF_CREATE_STATE(entryb_entry, entryb_run, NULL, NULL, NULL),
+   [END] = SMF_CREATE_STATE(end_entry, end_run, NULL, NULL, NULL),
+   [STANDBY] = SMF_CREATE_STATE(standby_entry, standby_run, NULL, NULL, NULL)
  };
 
  /* --------------------------------------------------------------------------------------------------------------
    Initialize and Run
  -------------------------------------------------------------------------------------------------------------- */
  void state_machine_init(){
-   smf_set_initial(SMF_CTX(&state_object), &state_machine_states[BOOT]);
+   smf_set_initial(SMF_CTX(&state_object), &state_machine_states[ENTRYA]);
  }
 
  int state_machine_run(){
@@ -126,101 +109,40 @@
  /* --------------------------------------------------------------------------------------------------------------
    Entry States
  -------------------------------------------------------------------------------------------------------------- */
-static void boot_entry(void * o){
-  initialize_password();
-  state_object.count = 0;
-  LED_set(LED0, LED_OFF);
-  LED_set(LED1, LED_OFF);
-  LED_set(LED2, LED_ON); 
-  LED_set(LED3, LED_OFF); //turn on LED3 (LED4 on board)
-}
+ static void entrya_entry(void * o){
 
- static void lock_entry(void * o){
-  state_object.count = 0;
-  state_object.user_input_count = 0;
-  clear_input();
-  LED_set(LED0, LED_ON);
-  LED_set(LED1, LED_OFF);
-  LED_set(LED2, LED_OFF); 
-  LED_set(LED3, LED_OFF);
  }
+ static void entryb_entry(void * o){
 
- static void input_entry(void * o){
-  state_object.count = 0;
-  state_object.input_count = 0;
-  LED_set(LED0, LED_OFF);
-  LED_set(LED1, LED_OFF);
-  LED_set(LED2, LED_ON); 
-  LED_set(LED3, LED_OFF);
  }
+ static void end_entry(void * o){
 
- static void waiting_entry(void * o){
-  state_object.count = 0;
-  LED_set(LED0, LED_OFF);
-  LED_set(LED1, LED_OFF);
-  LED_set(LED2, LED_OFF); 
-  LED_set(LED3, LED_OFF);
+ }
+ static void standby_entry(void * o){
+
  }
 
  /* --------------------------------------------------------------------------------------------------------------
    Run States
  -------------------------------------------------------------------------------------------------------------- */
 
- static enum smf_state_result boot_run(void *o){
-  int edge = button_press_edge();
-  
-  if (edge != -1 && state_object.count < 10000){ //changed input time to 10 seconds for convenience
-    smf_set_state(SMF_CTX(&state_object), &state_machine_states[INPUT]);
-  } else {
-    state_object.count++;
-    if (state_object.count > 10000) {
-      smf_set_state(SMF_CTX(&state_object), &state_machine_states[LOCKED]);
-    }
-  }
+ static enum smf_state_result entrya_run(void *o){
 
   return SMF_EVENT_HANDLED;
  }
 
- static enum smf_state_result input_run(void *o){
-  int edge = button_press_edge();
-
-  if (edge != -1){
-    if (edge != 4 && state_object.input_count < PASSLEN) {
-      password[state_object.input_count++] = edge; 
-    } else {
-      smf_set_state(SMF_CTX(&state_object), &state_machine_states[LOCKED]);
-    }
-  }
+ static enum smf_state_result entryb_run(void *o){
 
   return SMF_EVENT_HANDLED;
  }
 
- static enum smf_state_result lock_run (void *o){
-  int edge = button_press_edge();
+ static enum smf_state_result end_run(void *o){
 
-  if (edge != -1){
-    if (edge != 4 && state_object.user_input_count < PASSLEN) {
-      user_input[state_object.user_input_count++] = edge; 
-    } else {
-      if (compare_passwords() == -1){
-        clear_input();
-        state_object.user_input_count = 0;
-        printk("Inputted Password Incorrect");
-      } else {
-        smf_set_state(SMF_CTX(&state_object), &state_machine_states[WAITING]);
-      }
-
-
-    }
-  }
   return SMF_EVENT_HANDLED;
  }
 
- static enum smf_state_result waiting_run (void *o){
-  int edge = button_press_edge();
-  if (edge != -1) {
-    smf_set_state(SMF_CTX(&state_object), &state_machine_states[LOCKED]);
-  }
+ static enum smf_state_result standby_run(void *o){
+
   return SMF_EVENT_HANDLED;
  }
 
