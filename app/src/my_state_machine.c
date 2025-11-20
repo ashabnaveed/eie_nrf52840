@@ -298,7 +298,6 @@ static enum smf_state_result end_run(void *o){
 
 static void standby_entry(void * o){
     printk("\n=== ENTERING STANDBY (PWM breathing) ===\n");
-    state_object.last_state = STANDBY;
     state_object.pwm = 0;
     LED_set(LED0, LED_ON);
     LED_set(LED1, LED_ON);
