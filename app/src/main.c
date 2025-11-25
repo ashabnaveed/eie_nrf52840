@@ -18,6 +18,7 @@
 #include <zephyr/kernel.h>
 #include <zephyr/settings/settings.h>
 #include <zephyr/sys/printk.h>
+#include <LED.h>
 
 /* MACROS --------------------------------------------------------------------------------------- */
 
@@ -52,7 +53,7 @@ static const struct bt_data ble_scan_response_data[] = {
 };
 
 static uint8_t ble_custom_characteristic_user_data[BLE_CUSTOM_CHARACTERISTIC_MAX_DATA_LENGTH + 1] =
-    {'E', 'i', 'E'};
+    {'L', 'E', 'D'};
 
 /* BLE SERVICE SETUP ---------------------------------------------------------------------------- */
 
@@ -135,7 +136,7 @@ int main(void) {
     printk("Advertising failed to start (err %d)\n", err);
     return 0;
   }
-
+ 
   while (1) {
     k_sleep(K_MSEC(1000));
     ble_custom_service_notify();
