@@ -19,6 +19,7 @@
 #include <zephyr/settings/settings.h>
 #include <zephyr/sys/printk.h>
 #include <LED.h>
+#include <BTN.h>
 
 /* MACROS --------------------------------------------------------------------------------------- */
 
@@ -53,7 +54,7 @@ static const struct bt_data ble_scan_response_data[] = {
 };
 
 static uint8_t ble_custom_characteristic_user_data[BLE_CUSTOM_CHARACTERISTIC_MAX_DATA_LENGTH + 1] =
-    {'L', 'E', 'D'};
+    {'E', 'i', 'E'};
 
 /* BLE SERVICE SETUP ---------------------------------------------------------------------------- */
 
@@ -109,13 +110,37 @@ static ssize_t ble_custom_service_write(struct bt_conn* conn, const struct bt_ga
   }
   printk("\n");
 
+  if (strcmp(value, "LED ON") == 0){
+    printk("LED1 On");
+    LED_set(LED0, LED_ON);
+    memset(ble_custom_characteristic_user_data, 0, sizeof(ble_advertising_data));
+    strcpy(ble_custom_characteristic_user_data, "LED ON");
+  }
+
+  if (strcmp(value, "LED OFF") == 0){
+    printk("LED1 Off");
+    LED_set(LED0, LED_OFF);
+    memset(ble_custom_characteristic_user_data, 0, sizeof(ble_advertising_data));
+    strcpy(ble_custom_characteristic_user_data, "LED ON");
+  }
+
   return len;
 }
 
 static void ble_custom_service_notify() {
   static uint32_t counter = 0;
+  static int add = 1;
   bt_gatt_notify(NULL, &ble_custom_service.attrs[2], &counter, sizeof(counter));
+
+  if(BTN_check_clear_pressed(BTN0)){
+    add = !add;
+    printk("Reversing button direction");
+  }
+
+  if (add)
   counter++;
+  else
+  counter--;
 }
 
 /* MAIN ----------------------------------------------------------------------------------------- */
@@ -136,6 +161,9 @@ int main(void) {
     printk("Advertising failed to start (err %d)\n", err);
     return 0;
   }
+
+  LED_init();
+  BTN_init();
  
   while (1) {
     k_sleep(K_MSEC(1000));
